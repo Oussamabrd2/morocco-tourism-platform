@@ -29,4 +29,13 @@ class Post extends Model
         $image = $this->images()->first();
         return $image ? $image->url : null;
     }
+    public function ratings() {
+        return $this->hasMany(Rating::class);
+    }
+    public function averageRating() {
+        return $this->ratings()->avg('rating');
+    }
+    public function reviews() {
+        return $this->hasMany(Rating::class)->whereNotNull('review');
+    }
 }

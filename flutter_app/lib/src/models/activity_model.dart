@@ -43,4 +43,9 @@ class ActivityModel {
       endAt: json['end_at'] as String?,
     );
   }
+
+  bool get isFull => capacity != null && participantsCount >= capacity!;
+
+  int get seatsRemaining =>
+      capacity != null ? capacity! - participantsCount : 0;
 }

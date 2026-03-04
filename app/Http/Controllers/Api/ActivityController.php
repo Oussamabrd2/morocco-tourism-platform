@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Api/ActivityController.php
 
 namespace App\Http\Controllers\Api;
 
@@ -11,79 +12,142 @@ use Illuminate\Http\Request;
 
 class ActivityController extends Controller
 {
-    /**
-     * List activities. Role policy: only organizer/admin can create.
-     */
+    // ── List ─────────────────────────────────────────────────────────────────
+
     public function index(Request $request): JsonResponse
     {
+        $userId = $request->user()?->id;
+
         $activities = Activity::with(['location', 'organizer'])
             ->withCount('participants')
             ->latest()
             ->paginate(20);
 
-        $collection = $activities->getCollection()->map(fn ($a) => new ActivityResource($a));
+        $collection = $activities->getCollection()
+            ->map(fn ($a) => new ActivityResource($a, $userId));
+
         $activities->setCollection($collection);
 
         return response()->json([
-            'data' => $collection->values(),
-            'meta' => [
+            'success' => true,
+            'data'    => $collection->values(),
+            'meta'    => [
                 'current_page' => $activities->currentPage(),
-                'last_page' => $activities->lastPage(),
-                'per_page' => $activities->perPage(),
-                'total' => $activities->total(),
+                'last_page'    => $activities->lastPage(),
+                'per_page'     => $activities->perPage(),
+                'total'        => $activities->total(),
             ],
         ]);
     }
 
-    public function show(int $id): JsonResponse
+    // ── Show ─────────────────────────────────────────────────────────────────
+
+    public function show(Request $request, int $id): JsonResponse
     {
-        $activity = Activity::with(['location', 'organizer', 'participants.user'])->findOrFail($id);
-        return response()->json(['data' => new ActivityResource($activity)]);
+        $userId = $request->user()?->id;
+
+        $activity = Activity::with(['location', 'organizer'])
+            ->withCount('participants')
+            ->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data'    => new ActivityResource($activity, $userId),
+        ]);
     }
+
+    // ── Create (organizer / admin only via ActivityPolicy) ───────────────────
 
     public function store(Request $request): JsonResponse
     {
         $this->authorize('create', Activity::class);
 
         $data = $request->validate([
-            'title' => 'required|string|max:255',
+            'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'location_id' => 'nullable|exists:locations,id',
-            'start_at' => 'nullable|date',
-            'end_at' => 'nullable|date|after_or_equal:start_at',
-            'capacity' => 'nullable|integer|min:1',
-            'price' => 'nullable|numeric|min:0',
+            'start_at'    => 'nullable|date',
+            'end_at'      => 'nullable|date|after_or_equal:start_at',
+            'capacity'    => 'nullable|integer|min:1',
+            'price'       => 'nullable|numeric|min:0',
         ]);
 
         $data['organizer_id'] = $request->user()->id;
+
         $activity = Activity::create($data);
         $activity->load(['location', 'organizer']);
+        $activity->loadCount('participants');
 
-        return response()->json(['data' => new ActivityResource($activity)], 201);
+        return response()->json([
+            'success' => true,
+            'message' => 'Activité créée avec succès',
+            'data'    => new ActivityResource($activity, $request->user()->id),
+        ], 201);
     }
+
+    // ── Join ─────────────────────────────────────────────────────────────────
 
     public function join(Request $request, int $id): JsonResponse
     {
-        $activity = Activity::findOrFail($id);
+        $activity = Activity::withCount('participants')->findOrFail($id);
 
-        if ($activity->capacity && $activity->participants()->count() >= $activity->capacity) {
-            return response()->json(['message' => 'Activity is full'], 422);
+        if ($activity->capacity && $activity->participants_count >= $activity->capacity) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette activité est complète',
+            ], 422);
         }
 
-        $participant = ActivityParticipant::firstOrCreate(
-            ['activity_id' => $id, 'user_id' => $request->user()->id],
-            ['status' => 'joined']
-        );
+        $alreadyJoined = ActivityParticipant::where('activity_id', $id)
+            ->where('user_id', $request->user()->id)
+            ->exists();
 
-        return response()->json(['message' => 'Joined', 'data' => $participant]);
+        if ($alreadyJoined) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous participez déjà à cette activité',
+            ], 422);
+        }
+
+        ActivityParticipant::create([
+            'activity_id' => $id,
+            'user_id'     => $request->user()->id,
+            'status'      => 'joined',
+        ]);
+
+        $activity->refresh()->load(['location', 'organizer']);
+        $activity->loadCount('participants');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vous avez rejoint l\'activité',
+            'data'    => new ActivityResource($activity, $request->user()->id),
+        ]);
     }
+
+    // ── Cancel (DELETE /activities/{id}/join) ────────────────────────────────
 
     public function cancel(Request $request, int $id): JsonResponse
     {
-        ActivityParticipant::where('activity_id', $id)
+        $deleted = ActivityParticipant::where('activity_id', $id)
             ->where('user_id', $request->user()->id)
             ->delete();
 
-        return response()->json(['message' => 'Cancelled']);
+        if (! $deleted) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'êtes pas inscrit à cette activité',
+            ], 404);
+        }
+
+        $activity = Activity::with(['location', 'organizer'])
+            ->withCount('participants')
+            ->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Participation annulée',
+            'data'    => new ActivityResource($activity, $request->user()->id),
+        ]);
     }
 }
