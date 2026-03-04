@@ -3,48 +3,54 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    /**
-     * Get the current authenticated user
-     */
-    public function current(Request $request)
+    public function current(Request $request): JsonResponse
     {
-        return response()->json(['data' => $request->user()]);
+        $user = $request->user()->loadCount('posts');
+        return response()->json(['data' => new UserResource($user)]);
     }
 
-    /**
-     * Get a specific user by ID
-     */
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
-        $user = User::with('posts')->findOrFail($id);
-        return response()->json(['data' => $user]);
+        $user = User::withCount('posts')->findOrFail($id);
+        return response()->json(['data' => new UserResource($user)]);
     }
 
-    /**
-     * Update current authenticated user
-     */
-    public function updateCurrent(Request $request)
+    public function updateCurrent(Request $request): JsonResponse
     {
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $request->user()->id,
+            'avatar_url' => 'nullable|string|url',
+            'bio' => 'nullable|string|max:500',
+        ]);
+
         $user = $request->user();
-        $data = $request->only(['name', 'email', 'avatar_url', 'bio']);
-        $user->update($data);
-        return response()->json(['data' => $user]);
+        $user->update($request->only(['name', 'email', 'avatar_url', 'bio']));
+
+        return response()->json(['data' => new UserResource($user->fresh())]);
     }
 
-    /**
-     * Update a specific user (needs authorization)
-     */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): JsonResponse
     {
         $user = User::findOrFail($id);
         $this->authorize('update', $user);
-        $data = $request->only(['name', 'email', 'avatar_url', 'bio']);
-        $user->update($data);
-        return response()->json(['data' => $user]);
+
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $id,
+            'avatar_url' => 'nullable|string|url',
+            'bio' => 'nullable|string|max:500',
+        ]);
+
+        $user->update($request->only(['name', 'email', 'avatar_url', 'bio']));
+
+        return response()->json(['data' => new UserResource($user->fresh())]);
     }
 }

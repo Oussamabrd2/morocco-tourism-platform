@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'src/routes/app_routes.dart';
-import 'src/views/login.dart';
 import 'src/views/welcome.dart';
 import 'src/services/auth_service.dart';
-
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final auth = AuthService();
   await auth.initializeToken();
-  
+
   runApp(const MyApp());
 }
 
@@ -20,13 +17,22 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Tourisme Social',
+      title: 'Ziarat - Tourisme Social',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.dark(
+          primary: Colors.orange,
+          secondary: Colors.orangeAccent,
+          surface: const Color(0xFF121212),
+          error: Colors.redAccent,
+          onPrimary: Colors.black,
+          onSecondary: Colors.black,
+          onSurface: Colors.white,
+          onError: Colors.white,
+        ),
         useMaterial3: true,
+        scaffoldBackgroundColor: Colors.black,
       ),
-      home: const WelcomeScreen(),
-      routes: routes,
+      routes: appRoutes,
     );
   }
 }

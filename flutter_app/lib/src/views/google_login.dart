@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/google_auth_service.dart';
 
 /// Simple Material page offering Google Sign-In and logout.

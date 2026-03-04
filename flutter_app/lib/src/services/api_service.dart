@@ -1,73 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
-// The API base URL
+import '../models/post_model.dart';
+import '../models/location_model.dart';
+import '../models/activity_model.dart';
+
 const String apiBase = 'http://192.168.0.164:8000';
 
-class Post {
-  final int id;
-  final String userName;
-  final String placeName;
-  final String description;
-  final double rating;
-  final String? image;
-  final String createdAt;
-
-  Post({
-    required this.id,
-    required this.userName,
-    required this.placeName,
-    required this.description,
-    required this.rating,
-    this.image,
-    required this.createdAt,
-  });
-
-  factory Post.fromJson(Map<String, dynamic> json) => Post(
-    id: json['id'] as int,
-    userName: json['user_name'] ?? json['user']?['name'] ?? 'Unknown',
-    placeName: json['place_name'] ?? json['title'] ?? '',
-    description: json['description'] ?? json['body'] ?? '',
-    rating: (json['rating'] is num)
-        ? (json['rating'] as num).toDouble()
-        : double.tryParse('${json['rating']}') ?? 0.0,
-    image: json['image'] as String?,
-    createdAt: json['created_at'] ?? '',
-  );
-}
-
-class City {
-  final int id;
-  final String name;
-  final String description;
-  final String? image;
-  final double rating;
-  final double? latitude;
-  final double? longitude;
-
-  City({
-    required this.id,
-    required this.name,
-    required this.description,
-    this.image,
-    required this.rating,
-    this.latitude,
-    this.longitude,
-  });
-
-  factory City.fromJson(Map<String, dynamic> json) => City(
-    id: json['id'] as int,
-    name: json['name'] ?? '',
-    description: json['description'] ?? '',
-    image: json['image'] as String?,
-    rating: (json['rating'] is num)
-        ? (json['rating'] as num).toDouble()
-        : double.tryParse('${json['rating']}') ?? 0.0,
-    latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
-    longitude: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
-  );
-}
-
+/// Singleton service handling networking for the Flutter app.
 class ApiService {
   static final ApiService _instance = ApiService._internal();
 
@@ -76,29 +17,24 @@ class ApiService {
 
   ApiService._internal();
 
-  factory ApiService() {
-    return _instance;
-  }
+  factory ApiService() => _instance;
 
-  /// Set token after login
   void setToken(String? newToken) {
     token = newToken;
   }
 
-  /// Clear token on logout
   void clearToken() {
     token = null;
   }
 
-  /// Build headers with authorization if token exists
   Map<String, String> _headers() => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     if (token != null) 'Authorization': 'Bearer $token',
   };
 
-  // ============== Authenticated Requests ==============
-
+  // ------------------------------------------------------------------
+  // low-level helpers
   Future<http.Response> post(String path, Map<String, dynamic> body) {
     return http.post(
       Uri.parse('$baseUrl/$path'),
@@ -119,57 +55,136 @@ class ApiService {
     );
   }
 
-  // ============== Public Posts ==============
+  // ------------------------------------------------------------------
+  // high-level public endpoints used across views
+  // ------------------------------------------------------------------
 
-  static Future<List<Post>> fetchPosts() async {
+  Future<List<PostModel>> fetchPosts() async {
     final uri = Uri.parse('$apiBase/api/v1/posts');
     final res = await http.get(uri);
     if (res.statusCode == 200) {
       final data = json.decode(res.body);
       final List posts = data['data'] is List ? data['data'] : [];
-      return posts.map((e) => Post.fromJson(e as Map<String, dynamic>)).toList();
+      return posts
+          .map((e) => PostModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
     throw Exception('Failed to load posts: ${res.statusCode}');
   }
 
-  // ============== Locations (Cities) ==============
-
-  static Future<List<City>> fetchCities() async {
+  Future<List<LocationModel>> fetchLocations() async {
     final uri = Uri.parse('$apiBase/api/v1/locations');
     final res = await http.get(uri);
     if (res.statusCode == 200) {
       final data = json.decode(res.body);
-      final List locations = data['data'] is List ? data['data'] : [];
-      return locations.map((e) => City.fromJson(e as Map<String, dynamic>)).toList();
+      final List locs = data['data'] is List ? data['data'] : [];
+      return locs
+          .map((e) => LocationModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
     throw Exception('Failed to load locations: ${res.statusCode}');
   }
 
-  // ============== Create Post ==============
-
-  static Future<Map<String, dynamic>> createPost({
-    required String placeName,
-    required String description,
-    required double rating,
-    String? image,
-    required String token,
+  Future<Map<String, dynamic>> createPost({
+    required String title,
+    required String body,
+    required int score,
+    File? imageFile,
   }) async {
-    final uri = Uri.parse('$apiBase/api/v1/posts');
-    final headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-    final body = jsonEncode({
-      'place_name': placeName,
-      'description': description,
-      'rating': rating,
-      if (image != null && image.isNotEmpty) 'image': image,
-    });
-    final res = await http.post(uri, headers: headers, body: body);
+    final uri = Uri.parse('$baseUrl/v1/posts');
+    final request = http.MultipartRequest('POST', uri);
+    if (token != null) request.headers['Authorization'] = 'Bearer $token!';
+    request.fields['title'] = title;
+    request.fields['body'] = body;
+    request.fields['score'] = score.toString();
+    if (imageFile != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('image', imageFile.path),
+      );
+    }
+    final streamed = await request.send();
+    final res = await http.Response.fromStream(streamed);
     if (res.statusCode == 201 || res.statusCode == 200) {
       return json.decode(res.body) as Map<String, dynamic>;
     }
     throw Exception('Failed to create post: ${res.statusCode} - ${res.body}');
+  }
+
+  // ------------------------------------------------------------------
+  // activities
+  Future<List<ActivityModel>> fetchActivities() async {
+    final res = await get('v1/activities');
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      final List acts = data['data'] is List ? data['data'] : [];
+      return acts
+          .map((e) => ActivityModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    throw Exception('Failed to load activities: ${res.statusCode}');
+  }
+
+  Future<ActivityModel> fetchActivity(int id) async {
+    final res = await get('v1/activities/$id');
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      return ActivityModel.fromJson(data['data'] as Map<String, dynamic>);
+    }
+    throw Exception('Failed to load activity: ${res.statusCode}');
+  }
+
+  Future<Map<String, dynamic>> joinActivity(int id) async {
+    final res = await post('v1/activities/$id/join', {});
+    if (res.statusCode == 200) {
+      return json.decode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to join activity: ${res.statusCode}');
+  }
+
+  Future<Map<String, dynamic>> cancelActivity(int id) async {
+    final res = await post('v1/activities/$id/cancel', {});
+    if (res.statusCode == 200) {
+      return json.decode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to cancel activity: ${res.statusCode}');
+  }
+
+  Future<Map<String, dynamic>> createActivity({
+    required String title,
+    String? description,
+    int? capacity,
+    double? price,
+  }) async {
+    final payload = <String, dynamic>{'title': title};
+    if (description != null) payload['description'] = description;
+    if (capacity != null) payload['capacity'] = capacity;
+    if (price != null) payload['price'] = price;
+    final res = await post('v1/activities', payload);
+    if (res.statusCode == 201 || res.statusCode == 200) {
+      return json.decode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception(
+      'Failed to create activity: ${res.statusCode} - ${res.body}',
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // user/profile
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    final res = await get('v1/user');
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      return data['data'] as Map<String, dynamic>;
+    }
+    throw Exception('Failed to fetch current user: ${res.statusCode}');
+  }
+
+  Future<Map<String, dynamic>> updateUser(Map<String, dynamic> fields) async {
+    final res = await put('v1/user', fields);
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      return data['data'] as Map<String, dynamic>;
+    }
+    throw Exception('Failed to update user: ${res.statusCode} - ${res.body}');
   }
 }

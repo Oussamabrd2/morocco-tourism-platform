@@ -3,72 +3,103 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PostResource;
 use App\Models\Post;
+use App\Models\PostImage;
+use App\Models\Rating;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
-    use AuthorizesRequests;
-
-    public function __construct()
+    /**
+     * List posts with user, images, location. Consistent JSON wrapper.
+     */
+    public function index(): JsonResponse
     {
-        $this->middleware('auth:sanctum')->only(['store', 'destroy']);
-    }
-
-    public function index(Request $request)
-    {
-        $posts = Post::with(['user', 'images', 'location'])
+        $posts = Post::with(['user', 'images', 'location.ratings'])
             ->latest()
-            ->paginate(10);
+            ->paginate(20);
 
-        return response()->json($posts);
+        return response()->json([
+            'data' => PostResource::collection($posts),
+            'meta' => [
+                'current_page' => $posts->currentPage(),
+                'last_page' => $posts->lastPage(),
+                'per_page' => $posts->perPage(),
+                'total' => $posts->total(),
+            ],
+        ]);
     }
 
-    public function show($id)
+    /**
+     * Get single post.
+     */
+    public function show(int $id): JsonResponse
     {
-        $post = Post::with(['user', 'images', 'location', 'comments'])
-            ->findOrFail($id);
-
-        return response()->json(['data' => $post]);
+        $post = Post::with(['user', 'images', 'location'])->findOrFail($id);
+        return response()->json(['data' => new PostResource($post)]);
     }
 
-    public function store(Request $request)
+    /**
+     * Create post. Requires auth. Validates title, body, location_id, score, optional image.
+     */
+    public function store(Request $request): JsonResponse
     {
-        $this->authorize('create', Post::class);
-
-        $data = $request->validate([
-            'title' => 'nullable|string',
-            'body' => 'nullable|string',
-            'place_name' => 'nullable|string',
-            'description' => 'nullable|string',
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'body' => 'required|string',
             'location_id' => 'nullable|exists:locations,id',
-            'rating' => 'nullable|numeric|min:0|max:5',
+            'score' => 'nullable|integer|min:1|max:5',
+            'image' => 'nullable|image|max:5120',
         ]);
 
-        $data['user_id'] = $request->user()->id;
+        return DB::transaction(function () use ($request) {
+            $post = Post::create([
+                'user_id' => auth()->id(),
+                'title' => $request->title,
+                'body' => $request->body,
+                'location_id' => $request->location_id,
+            ]);
 
-        if (isset($data['place_name']) && empty($data['title'])) {
-            $data['title'] = $data['place_name'];
-        }
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('posts', 'public');
+                PostImage::create([
+                    'post_id' => $post->id,
+                    'url' => asset('storage/' . $path),
+                ]);
+            }
 
-        if (isset($data['description']) && empty($data['body'])) {
-            $data['body'] = $data['description'];
-        }
+            if ($request->location_id && $request->has('score')) {
+                Rating::updateOrCreate(
+                    ['user_id' => auth()->id(), 'location_id' => $request->location_id],
+                    ['post_id' => $post->id, 'score' => $request->score]
+                );
+            }
 
-        $post = Post::create($data);
-
-        return response()->json(['data' => $post], 201);
+            $post->load(['user', 'images', 'location']);
+            return response()->json(['data' => new PostResource($post)], 201);
+        });
     }
 
-    public function destroy(Request $request, $id)
+    /**
+     * Delete post. Owner or admin only.
+     */
+    public function destroy(int $id): JsonResponse
     {
         $post = Post::findOrFail($id);
-
         $this->authorize('delete', $post);
 
-        $post->delete();
+        DB::transaction(function () use ($post) {
+            $post->images()->each(fn (PostImage $img) => Storage::disk('public')->delete(
+                str_replace('/storage/', '', parse_url($img->url, PHP_URL_PATH))
+            ));
+            $post->images()->delete();
+            $post->delete();
+        });
 
-        return response()->json(['message' => 'Deleted successfully']);
+        return response()->json(['message' => 'Post deleted']);
     }
 }

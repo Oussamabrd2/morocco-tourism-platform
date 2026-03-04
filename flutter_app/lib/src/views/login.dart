@@ -1,63 +1,52 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import '../services/api_service.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Controllers للتحكم في النصوص
-  final _emailController = TextEditingController();
+  final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
-  
-  bool _isLoading = false;
+  bool   _isLoading    = false;
   String? _errorMessage;
 
-  // دالة تسجيل الدخول والربط مع Laravel
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _handleLogin() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final email    = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Veuillez remplir tous les champs');
+      return;
+    }
+
+    setState(() { _isLoading = true; _errorMessage = null; });
 
     try {
-      final api = ApiService();
-      final response = await api.post('v1/auth/login', {
-        'email': _emailController.text,
-        'password': _passwordController.text,
-      });
-
-      final body = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        // نجاح الدخول - تخزين التوكن والانتقال للرئيسية
-        final token = body['data']['token'];
-        Navigator.pushReplacementNamed(context, '/home', arguments: {'token': token});
-      } else {
-        // فشل الدخول - إظهار رسالة الخطأ القادمة من Laravel
-        setState(() {
-          _errorMessage = body['message'] ?? 'Email ou mot de passe incorrect';
-        });
-      }
+      // FIX: AuthService.login saves token internally — no more passing token as nav arg
+      await AuthService().login(email, password);
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Erreur de connexion au serveur';
-      });
+      setState(() => _errorMessage = e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // خلفية داكنة مثل الصور
+      backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
@@ -67,114 +56,74 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            // العنوان الرئيسي
             const Text(
-              "Connexion à Ziarat",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
+              'Connexion à Ziarat',
+              style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
-
-            // حقل البريد الإلكتروني
-            _buildTextField(
-              controller: _emailController,
-              hint: "Email",
-              keyboardType: TextInputType.emailAddress,
-            ),
+            _buildTextField(_emailController, 'Email', keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 16),
-
-            // حقل كلمة المرور (الذي طلبته)
-            _buildTextField(
-              controller: _passwordController,
-              hint: "Mot de passe",
-              isPassword: true,
-            ),
-
-            // عرض الخطأ إن وجد
+            _buildTextField(_passwordController, 'Mot de passe', isPassword: true),
             if (_errorMessage != null)
               Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 14),
-                ),
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
               ),
-
             const SizedBox(height: 24),
-
-            // زر الدخول (Style Strava)
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A1A1A), // لون داكن للزر قبل التفعيل أو برتقالي
-                  disabledBackgroundColor: Colors.grey[900],
+                  backgroundColor: Colors.orange,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(color: Colors.grey[800]!),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: _isLoading ? null : _handleLogin,
                 child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text(
-                        "Continuer",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    ? const SizedBox(height: 20, width: 20,
+                        child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                    : const Text('Continuer',
+                        style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
-
             const SizedBox(height: 20),
-            const Center(
-              child: Text("ou", style: TextStyle(color: Colors.grey)),
+            const Center(child: Text('ou', style: TextStyle(color: Colors.grey))),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: Colors.grey.shade800),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+                onPressed: () => Navigator.pushNamed(context, '/google-login'),
+                child: const Text('Continuer avec Google',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              ),
             ),
-            const SizedBox(height: 20),
-
-            _buildSocialButton(
-              label: "Continuer avec Google",
-              iconPath: "assets/icon/google.png",
-              onPressed: () {
-                Navigator.pushNamed(context, '/google-login');
-              },
-            ),            keytool -list -v -alias androiddebugkey -keystore %USERPROFILE%\.android\debug.keystore -storepass android -keypass android
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    bool isPassword = false,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildTextField(TextEditingController c, String hint,
+      {bool isPassword = false, TextInputType keyboardType = TextInputType.text}) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[800]!),
+        border: Border.all(color: Colors.grey.shade800),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: TextField(
-        controller: controller,
+        controller: c,
         obscureText: isPassword,
         keyboardType: keyboardType,
         style: const TextStyle(color: Colors.white),
@@ -182,29 +131,6 @@ class _LoginScreenState extends State<LoginScreen> {
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.grey),
           border: InputBorder.none,
-        ),
-      ),
-    );
-  }
-
-  // بناء أزرار التواصل الاجتماعي
-  Widget _buildSocialButton({
-    required String label,
-    required String iconPath,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          side: BorderSide(color: Colors.grey[800]!),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
-        onPressed: onPressed,
-        child: Text(
-          label,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
       ),
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'feed_view.dart'; // سنقوم بإنشائه بناءً على الصورة
+import 'feed_view.dart';
 import 'guide_view.dart';
 import 'map_view.dart';
 import 'activities.dart';
@@ -15,13 +15,12 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  // القائمة تعتمد على الملفات الموجودة في مجلد views الخاص بك
   final List<Widget> _pages = [
-    const FeedView(),        // الصفحة الرئيسية للمنشورات
-    const GuideView(),       // صفحة الدليل (Top Ratings)
-    const MapView(),         // صفحة الخريطة
-    const ActivitiesView(), // Activités
-    const ProfileView(), // Profil
+    const FeedView(),
+    const GuideView(),
+    const MapView(),
+    const ActivitiesView(),
+    const ProfileView(),
   ];
 
   void _onTap(int index) {
@@ -33,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // خلفية داكنة مثل الصورة
+      backgroundColor: Colors.black,
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomAppBar(
         color: const Color(0xFF1A1A1A),
@@ -46,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _navItem(Icons.home_filled, 0, 'Accueil'),
               _navItem(Icons.explore, 1, 'Guide'),
-              const SizedBox(width: 40), 
+              const SizedBox(width: 40),
               _navItem(Icons.local_activity, 3, 'Activités'),
               _navItem(Icons.person, 4, 'Profil'),
             ],

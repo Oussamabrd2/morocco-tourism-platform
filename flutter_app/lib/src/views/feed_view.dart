@@ -1,197 +1,147 @@
+/// lib/views/feed_view.dart
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../models/post_model.dart';
 import 'create_post.dart';
 
 class FeedView extends StatefulWidget {
   const FeedView({super.key});
-
   @override
   State<FeedView> createState() => _FeedViewState();
 }
 
 class _FeedViewState extends State<FeedView> {
-  late Future<List<Post>> _futurePosts;
+  late Future<List<PostModel>> _futurePosts;
 
   @override
   void initState() {
     super.initState();
-    _futurePosts = ApiService.fetchPosts();
+    _futurePosts = ApiService().fetchPosts();
   }
+
+  Future<void> _onRefresh() async =>
+      setState(() => _futurePosts = ApiService().fetchPosts());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            backgroundImage: NetworkImage('https://via.placeholder.com/150'),
-          ),
-        ),
-        title: const Text(
-          'Accueil',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<Post>>(
-        future: _futurePosts,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Erreur lors du chargement',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () =>
-                        setState(() => _futurePosts = ApiService.fetchPosts()),
-                    child: const Text('Réessayer'),
-                  ),
-                ],
-              ),
-            );
-          }
-          final posts = snapshot.data ?? [];
-          return ListView.builder(
-            itemCount: posts.length,
-            itemBuilder: (context, index) => _buildPostCard(posts[index]),
-          );
-        },
+        title: const Text('Ziarat Feed',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22)),
+        actions: [IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: () {})],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.orange,
-        child: const Icon(Icons.add),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CreatePostScreen()),
-          );
-        },
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreatePostScreen()))
+            .then((_) => _onRefresh()),
+        child: const Icon(Icons.add_a_photo, color: Colors.black),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        color: Colors.orange,
+        backgroundColor: const Color(0xFF1A1A1A),
+        child: FutureBuilder<List<PostModel>>(
+          future: _futurePosts,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: Colors.orange));
+            }
+            if (snapshot.hasError) {
+              return _errorState();
+            }
+            final posts = snapshot.data ?? [];
+            if (posts.isEmpty) {
+              return const Center(child: Text('Aucun post', style: TextStyle(color: Colors.grey)));
+            }
+            return ListView.builder(
+              itemCount: posts.length,
+              itemBuilder: (_, i) => _postCard(posts[i]),
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildPostCard(Post post) {
+  Widget _postCard(PostModel post) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(15),
-      ),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      color: const Color(0xFF121212),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(children: [
               CircleAvatar(
-                radius: 20,
-                backgroundImage: post.image != null
-                    ? NetworkImage(post.image!)
-                    : null,
                 backgroundColor: Colors.orange,
+                backgroundImage: (post.userAvatarUrl?.isNotEmpty == true)
+                    ? NetworkImage(post.userAvatarUrl!) : null,
+                child: (post.userAvatarUrl?.isNotEmpty != true)
+                    ? Text(post.userName.isNotEmpty ? post.userName[0].toUpperCase() : '?',
+                        style: const TextStyle(color: Colors.black))
+                    : null,
               ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    post.userName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    post.createdAt,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              const Icon(Icons.more_horiz, color: Colors.white),
-            ],
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(post.userName,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(post.createdAt, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              ])),
+            ]),
           ),
-          const SizedBox(height: 15),
-          Text(
-            post.placeName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(post.title,
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+              if (post.locationName != null)
+                Text(post.locationName!,
+                    style: const TextStyle(color: Colors.orange, fontSize: 12)),
+              const SizedBox(height: 4),
+              Text(post.body,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  maxLines: 4, overflow: TextOverflow.ellipsis),
+            ]),
           ),
-          const SizedBox(height: 5),
-          Text(
-            post.description,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-          const SizedBox(height: 15),
-          if (post.image != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+          if (post.imageUrl?.isNotEmpty == true)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Image.network(
-                post.image!,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stack) =>
-                    Container(height: 200, color: Colors.grey[800]),
+                post.imageUrl!,
+                width: double.infinity, fit: BoxFit.cover,
+                loadingBuilder: (_, child, progress) => progress == null
+                    ? child
+                    : Container(height: 200, color: const Color(0xFF1A1A1A),
+                        child: const Center(child: CircularProgressIndicator(color: Colors.orange))),
+                errorBuilder: (_, __, ___) => Container(height: 200, color: const Color(0xFF1A1A1A),
+                    child: const Icon(Icons.broken_image, color: Colors.grey, size: 50)),
               ),
             ),
-          if (post.image != null) const SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _actionButton(Icons.thumb_up_alt_outlined, 'Kudos'),
-              _actionButton(Icons.chat_bubble_outline, 'Commentaires'),
-              Row(
-                children: [
-                  const Icon(Icons.star, color: Colors.amber, size: 20),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${post.rating}/5',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(children: [
+              const Icon(Icons.star, color: Colors.orange, size: 18),
+              const SizedBox(width: 4),
+              Text('${post.averageRating.toStringAsFixed(1)}/5',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ]),
           ),
         ],
       ),
     );
   }
 
-  Widget _actionButton(IconData icon, String label) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white, size: 20),
-        const SizedBox(width: 5),
-        Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
-      ],
-    );
-  }
+  Widget _errorState() => Center(
+    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      const Text('Erreur de connexion', style: TextStyle(color: Colors.white)),
+      TextButton(
+          onPressed: _onRefresh,
+          child: const Text('Réessayer', style: TextStyle(color: Colors.orange))),
+    ]),
+  );
 }

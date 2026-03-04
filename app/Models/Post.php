@@ -9,25 +9,24 @@ class Post extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id','location_id','title','body'];
+    protected $fillable = ['user_id', 'location_id', 'title', 'body'];
 
-    public function user()
-    {
+    protected $appends = ['image_url'];
+
+    public function user() {
         return $this->belongsTo(User::class);
     }
 
-    public function location()
-    {
+    public function location() {
         return $this->belongsTo(Location::class);
     }
 
-    public function images()
-    {
+    public function images() {
         return $this->hasMany(PostImage::class);
     }
 
-    public function comments()
-    {
-        return $this->hasMany(Comment::class);
+    public function getImageUrlAttribute() {
+        $image = $this->images()->first();
+        return $image ? $image->url : null;
     }
 }
