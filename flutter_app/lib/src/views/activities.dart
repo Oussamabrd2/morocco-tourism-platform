@@ -131,7 +131,6 @@ class _ActivitiesViewState extends State<ActivitiesView> {
       );
 }
 
-// ── Activity Card widget ───────────────────────────────────────────────────
 
 class _ActivityCard extends StatelessWidget {
   final ActivityModel activity;
