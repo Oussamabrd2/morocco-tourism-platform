@@ -13,20 +13,32 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password',
-        'avatar_url', 'bio', 'role',
-        'gender', 'google_uid', 'is_blocked',
+        'name',
+        'email',
+        'password',
+        'google_uid',
+        'avatar_url',
+        'bio',
+        'gender',       // ← Man | Woman | Non-binary | Prefer not to say
+        'birth_date',   // ← date de naissance
+        'role',
+        'is_blocked',
     ];
 
     protected $hidden = [
-        'password', 'remember_token', 'google_uid',
+        'password',
+        'remember_token',
+        'google_uid',
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
+        'birth_date'        => 'date',       // ← cast en Carbon date
         'is_blocked'        => 'boolean',
     ];
+
+    // ── Relations ────────────────────────────────────────────────────────────
 
     public function posts()
     {
@@ -48,7 +60,15 @@ class User extends Authenticatable
         return $this->hasMany(ActivityParticipant::class);
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     public function isAdmin(): bool     { return $this->role === 'admin'; }
     public function isOrganizer(): bool { return in_array($this->role, ['organizer', 'admin']); }
     public function isBlocked(): bool   { return (bool) $this->is_blocked; }
+
+    // Calcul de l'âge depuis birth_date
+    public function getAgeAttribute(): ?int
+    {
+        return $this->birth_date?->age;
+    }
 }
