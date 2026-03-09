@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/location_model.dart';
+import 'travel_plan_view.dart';
 
 class GuideView extends StatefulWidget {
   const GuideView({super.key});
@@ -46,6 +47,32 @@ class _GuideViewState extends State<GuideView> {
             onChanged: (v) => setState(() => _search = v.toLowerCase()),
           ),
         ),
+        // ── Generate Travel Plan button ──────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A0A00),
+                foregroundColor: Colors.orangeAccent,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: const BorderSide(color: Colors.orangeAccent, width: 1),
+                ),
+                elevation: 0,
+              ),
+              icon: const Icon(Icons.auto_awesome, size: 18),
+              label: const Text(
+                'Générer un Plan de Voyage',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+              onPressed: () => TravelPlanLauncher.show(context),
+            ),
+          ),
+        ),
+
         Expanded(
           child: RefreshIndicator(
             onRefresh: _onRefresh, color: Colors.orange,

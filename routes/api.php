@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\ActivityController;
+use App\Http\Controllers\Api\TravelPlanController;
 
 Route::prefix('v1')->group(function () {
 
@@ -24,6 +25,9 @@ Route::prefix('v1')->group(function () {
     Route::get('locations',              [LocationController::class, 'index']);
     Route::get('locations/{id}',         [LocationController::class, 'show']);
     Route::get('locations/{id}/ratings', [RatingController::class, 'index']);
+
+    // ── Travel Plan (public) ────────────────────────────────────────────────
+    Route::get('travel-plan', [TravelPlanController::class, 'generate']);
 
     // ── Activities (public read) ─────────────────────────────────────────────
     Route::get('activities',      [ActivityController::class, 'index']);

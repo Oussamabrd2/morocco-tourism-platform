@@ -39,6 +39,27 @@ class AuthService {
 
   Future<bool> isLoggedIn() async => (await getToken()) != null;
 
+  /// Vérifie si le token est encore valide côté Laravel
+  /// en appelant GET /api/v1/user — retourne false si 401
+  Future<bool> verifyTokenWithServer() async {
+    try {
+      final response = await ApiService().get('user');
+      if (response.statusCode == 200) {
+        // Met à jour le cache user au passage
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final user = body['data'] as Map<String, dynamic>?;
+        if (user != null) await updateCachedUser(user);
+        return true;
+      }
+      // 401 = token invalide/expiré/supprimé
+      return false;
+    } catch (_) {
+      // Erreur réseau → on considère le token valide pour ne pas
+      // déconnecter l'user sans raison (ex: pas de wifi)
+      return true;
+    }
+  }
+
   Future<void> updateCachedUser(Map<String, dynamic> updated) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, jsonEncode(updated));
