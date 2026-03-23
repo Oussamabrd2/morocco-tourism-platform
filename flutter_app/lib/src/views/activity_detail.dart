@@ -134,14 +134,12 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Hero banner
-          _HeroBanner(activity: a),
 
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              children: [
               // Title
               Text(a.title,
                   style: const TextStyle(
@@ -197,7 +195,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               ),
 
               const SizedBox(height: 30),
-            ]),
+             ]),
           ),
         ],
       ),

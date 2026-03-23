@@ -130,17 +130,35 @@ class _ActivitiesViewState extends State<ActivitiesView> {
         ),
       );
 }
-
-
 class _ActivityCard extends StatelessWidget {
   final ActivityModel activity;
   final VoidCallback onTap;
 
   const _ActivityCard({required this.activity, required this.onTap});
 
+  // الـ Widget ديال الـ Badge خليتو هنا داخل الـ Class
+  Widget _buildSimpleBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final a = activity;
+    
     final capacityText = a.capacity != null
         ? '${a.participantsCount}/${a.capacity}'
         : '${a.participantsCount}';
@@ -160,158 +178,111 @@ class _ActivityCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Header banner
-          Container(
-            height: 90,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: a.isFull
-                  ? Colors.red.shade900.withOpacity(0.3)
-                  : Colors.grey.shade900,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Stack(alignment: Alignment.center, children: [
-              const Icon(Icons.terrain, color: Colors.orange, size: 40),
-              if (a.isFull)
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade700,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text('COMPLET',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              if (a.userJoined)
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade700,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text('INSCRIT',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                ),
-            ]),
-          ),
-
-          // Body
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // السطر الأول: لي بادج + الثمن
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-              // Title + price
-              Row(children: [
-                Expanded(
-                  child: Text(a.title,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold)),
-                ),
-                if (a.price != null && a.price! > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.orange.withOpacity(0.4)),
-                    ),
-                    child: Text(
-                      '${a.price!.toStringAsFixed(0)} DH',
-                      style: const TextStyle(
-                          color: Colors.orange,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text('Gratuit',
-                        style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12)),
+                  Row(
+                    children: [
+                      if (a.userJoined)
+                        _buildSimpleBadge('INSCRIT', Colors.green.shade700),
+                      if (a.userJoined && a.isFull) const SizedBox(width: 8),
+                      if (a.isFull)
+                        _buildSimpleBadge('COMPLET', Colors.red.shade700),
+                    ],
                   ),
-              ]),
+                  // الثمن (Price)
+                  if (a.price != null && a.price! > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.orange.withOpacity(0.4)),
+                      ),
+                      child: Text(
+                        '${a.price!.toStringAsFixed(0)} DH',
+                        style: const TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12),
+                      ),
+                    )
+                  else
+                    _buildSimpleBadge('Gratuit', Colors.green.withOpacity(0.5)),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // العنوان (Title)
+              Text(
+                a.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
 
               const SizedBox(height: 10),
 
-              // Location + capacity
-              Row(children: [
-                const Icon(Icons.location_on_outlined,
-                    color: Colors.grey, size: 14),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(a.locationName ?? 'Non spécifié',
-                      style:
-                          const TextStyle(color: Colors.grey, fontSize: 13),
-                      overflow: TextOverflow.ellipsis),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.group_outlined,
-                    color: Colors.grey, size: 14),
-                const SizedBox(width: 4),
-                Text(capacityText,
+              // الموقع + عدد المشاركين
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined, color: Colors.grey, size: 14),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      a.locationName ?? 'Non spécifié',
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.group_outlined, color: Colors.grey, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    capacityText,
                     style: TextStyle(
                         color: a.isFull ? Colors.redAccent : Colors.grey,
-                        fontSize: 13,
-                        fontWeight: a.isFull
-                            ? FontWeight.bold
-                            : FontWeight.normal)),
-              ]),
+                        fontSize: 13),
+                  ),
+                ],
+              ),
 
-              // Seats remaining
+              // شريط المقاعد المتبقية (Seats Bar)
               if (seatsText != null) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 _SeatsBar(activity: a),
-                const SizedBox(height: 4),
-                Text(seatsText,
-                    style: TextStyle(
-                        color: a.isFull
-                            ? Colors.redAccent
-                            : Colors.grey.shade400,
-                        fontSize: 11)),
+                const SizedBox(height: 6),
+                Text(
+                  seatsText,
+                  style: TextStyle(
+                      color: a.isFull ? Colors.redAccent : Colors.grey.shade400,
+                      fontSize: 11),
+                ),
               ],
 
-              // Description
+              // الوصف (Description)
               if (a.description.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(a.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Colors.white60, fontSize: 13, height: 1.4)),
+                const SizedBox(height: 12),
+                Text(
+                  a.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Colors.white60, fontSize: 13, height: 1.4),
+                ),
               ],
-            ]),
+            ],
           ),
-        ]),
+        ),
       ),
     );
   }

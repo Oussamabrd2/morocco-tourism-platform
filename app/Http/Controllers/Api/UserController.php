@@ -47,7 +47,6 @@ class UserController extends Controller
             'bio'              => 'nullable|string|max:500',
             'gender'           => 'nullable|in:Man,Woman,Non-binary,Prefer not to say',
             'avatar_url'       => 'nullable|string|max:500',
-            // Password change requires current password
             'password'         => 'sometimes|string|min:8|confirmed',
             'current_password' => 'required_with:password|string',
         ]);
