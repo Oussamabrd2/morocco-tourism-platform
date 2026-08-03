@@ -1,6 +1,6 @@
 # Morocco Tourism — API et plateforme d’administration
 
-Backend Laravel destiné à une application touristique. Le projet fournit une **API REST sécurisée** pour les utilisateurs, publications, destinations, évaluations, activités et plans de voyage, ainsi qu’un espace web d’administration.
+Solution touristique full-stack composée d’une **application mobile Flutter**, d’une **API REST Laravel sécurisée** et d’un espace web d’administration. Elle permet de découvrir des destinations, publier du contenu, évaluer des lieux, rejoindre des activités et générer un plan de voyage.
 
 ## Fonctionnalités principales
 
@@ -32,6 +32,31 @@ Backend Laravel destiné à une application touristique. Le projet fournit une *
 - Vite 7
 - Tailwind CSS 4
 - Axios
+- Flutter et Dart
+- Flutter Map
+- Shared Preferences
+- Google Sign-In
+
+## Application mobile Flutter
+
+L’application mobile se trouve dans le dossier `flutter_app/`.
+
+```bash
+cd flutter_app
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://VOTRE_ADRESSE_IP:8000/api/v1
+```
+
+Pour un émulateur Android, l’adresse par défaut `http://10.0.2.2:8000/api/v1` permet d’accéder au serveur exécuté sur la machine hôte.
+
+Fonctionnalités mobiles principales :
+
+- inscription, connexion et conservation de la session ;
+- consultation et création de publications ;
+- découverte des destinations ;
+- affichage cartographique ;
+- gestion du profil et de l’avatar ;
+- consultation, création et participation aux activités.
 
 ## API REST
 
@@ -144,6 +169,7 @@ php artisan test
 ## Structure principale
 
 ```text
+flutter_app/                    # Application mobile Flutter
 app/
 ├── Http/Controllers/Api/       # Contrôleurs de l’API REST
 ├── Http/Controllers/Admin/     # Tableau de bord administrateur
