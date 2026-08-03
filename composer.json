@@ -1,10 +1,15 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "oussamabrd2/morocco-tourism-api",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
-    "license": "MIT",
+    "description": "API REST Laravel et plateforme d'administration pour une application touristique.",
+    "keywords": [
+        "laravel",
+        "tourism",
+        "rest-api",
+        "sanctum",
+        "travel"
+    ],
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0",
