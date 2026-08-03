@@ -6,8 +6,11 @@ import '../models/post_model.dart';
 import '../models/location_model.dart';
 import '../models/activity_model.dart';
 
-// FIX: Single source of truth for base URL
-const String kApiBase = 'http://192.168.0.164:8000/api/v1';
+// URL configurable avec : flutter run --dart-define=API_BASE_URL=http://ADRESSE_IP:8000/api/v1
+const String kApiBase = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://10.0.2.2:8000/api/v1',
+);
 
 class ApiService {
   // FIX: Proper singleton
