@@ -1,59 +1,171 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Morocco Tourism — API et plateforme d’administration
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend Laravel destiné à une application touristique. Le projet fournit une **API REST sécurisée** pour les utilisateurs, publications, destinations, évaluations, activités et plans de voyage, ainsi qu’un espace web d’administration.
 
-## About Laravel
+## Fonctionnalités principales
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Module | Fonctionnalités |
+|---|---|
+| Authentification | Inscription, connexion, déconnexion et authentification Google |
+| Profils | Consultation et modification du profil, biographie et photo de profil |
+| Publications | Création, consultation et suppression de publications touristiques |
+| Destinations | Liste et détails des lieux touristiques |
+| Évaluations | Notes et avis associés aux destinations |
+| Activités | Création, consultation, inscription et annulation de participation |
+| Plan de voyage | Génération d’un parcours touristique |
+| Administration | Gestion des utilisateurs, rôles, blocage, publications, activités et lieux |
+| Export | Export des utilisateurs depuis le tableau de bord administrateur |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Rôles
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Utilisateur** : gère son profil, publie du contenu, évalue les destinations et rejoint des activités.
+- **Organisateur** : crée et gère des activités touristiques.
+- **Administrateur** : supervise les utilisateurs, contenus, activités, participants et destinations.
 
-## Learning Laravel
+## Technologies
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.2+
+- Laravel 12
+- Laravel Sanctum
+- SQLite par défaut
+- Blade
+- Vite 7
+- Tailwind CSS 4
+- Axios
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## API REST
 
-## Laravel Sponsors
+Les routes sont préfixées par `/api/v1`.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Routes publiques
 
-### Premium Partners
+```text
+POST   /api/v1/auth/register
+POST   /api/v1/auth/login
+POST   /api/v1/auth/google
+GET    /api/v1/posts
+GET    /api/v1/posts/{id}
+GET    /api/v1/locations
+GET    /api/v1/locations/{id}
+GET    /api/v1/activities
+GET    /api/v1/activities/{id}
+GET    /api/v1/travel-plan
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Routes protégées
 
-## Contributing
+Les routes protégées utilisent un token Laravel Sanctum.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```text
+POST   /api/v1/auth/logout
+GET    /api/v1/user
+PUT    /api/v1/user
+POST   /api/v1/user/avatar
+POST   /api/v1/posts
+DELETE /api/v1/posts/{id}
+POST   /api/v1/locations/{id}/ratings
+POST   /api/v1/activities
+POST   /api/v1/activities/{id}/join
+DELETE /api/v1/activities/{id}/join
+```
 
-## Code of Conduct
+## Installation locale
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Prérequis
 
-## Security Vulnerabilities
+- PHP 8.2 ou version ultérieure
+- Composer
+- Node.js et npm
+- Extensions PHP requises par Laravel
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 1. Cloner le dépôt
 
-## License
+```bash
+git clone https://github.com/Oussamabrd2/touriste-app.git
+cd touriste-app
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 2. Installer et configurer le projet
+
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+```
+
+Créez la base SQLite si elle n’existe pas :
+
+```bash
+touch database/database.sqlite
+```
+
+Sous Windows PowerShell :
+
+```powershell
+New-Item database/database.sqlite -ItemType File
+```
+
+Lancez ensuite les migrations :
+
+```bash
+php artisan migrate
+```
+
+### 3. Démarrer l’application
+
+```bash
+composer run dev
+```
+
+Vous pouvez aussi démarrer les services séparément :
+
+```bash
+php artisan serve
+npm run dev
+```
+
+## Tests
+
+```bash
+php artisan test
+```
+
+## Sécurité
+
+- authentification par tokens avec Laravel Sanctum ;
+- mots de passe hachés automatiquement ;
+- contrôle d’accès par rôles ;
+- blocage des comptes utilisateurs ;
+- variables sensibles exclues du dépôt grâce à `.gitignore`.
+
+> Ne publiez jamais votre fichier `.env`. Utilisez `.env.example` uniquement comme modèle de configuration.
+
+## Structure principale
+
+```text
+app/
+├── Http/Controllers/Api/       # Contrôleurs de l’API REST
+├── Http/Controllers/Admin/     # Tableau de bord administrateur
+├── Models/                     # Modèles Eloquent
+routes/
+├── api.php                     # Routes API v1
+└── web.php                     # Authentification et administration
+database/
+├── migrations/
+├── factories/
+└── seeders/
+```
+
+## Contexte
+
+Projet académique réalisé dans le cadre de la formation en **Développement d’Applications Web et Mobile**.
+
+## Auteur
+
+**Oussama Baghdadi**  
+Développeur web et mobile
+
+## Licence
+
+Ce projet est présenté à des fins académiques et de démonstration. Tous droits réservés.
