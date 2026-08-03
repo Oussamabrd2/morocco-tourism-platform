@@ -106,7 +106,7 @@ DELETE /api/v1/activities/{id}/join
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/Oussamabrd2/touriste-app.git
+git clone https://github.com/Oussamabrd2/morocco-tourism-platform.git
 cd touriste-app
 ```
 
