@@ -189,7 +189,7 @@ Projet académique réalisé dans le cadre de la formation en **Développement d
 
 ## Auteur
 
-**Oussama Baghdadi**  
+**Oussama Bourhdadi**  
 Développeur web et mobile
 
 ## Licence
